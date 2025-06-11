@@ -79,14 +79,15 @@ echo "disk : $DSTDISK"
 echo '---'
 
 read -r -p "VPS basic information above is correct? [Y/n]:" input
-case $input in
-  [yY][eE][sS]|[yY])  
-	;;
-  *) 
-	echo 'Exit for wrong vps information!'; 
-	exit 1
-	;;
+case "$input" in
+	[yY]*)
+		;;
+	*)
+		echo 'Exit for wrong vps information!';
+		exit 1
+		;;
 esac
+
 
 ###check ros config data
 echo '---ROS private config data---'
