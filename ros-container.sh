@@ -80,7 +80,7 @@ echo '---'
 
 read -r -p "VPS basic information above is correct? [Y/n]:" input
 case "$input" in
-	[yY]*)
+	[yY])
 		;;
 	*)
 		echo 'Exit for wrong vps information!';
@@ -118,7 +118,7 @@ echo "ROS dns server: $DNSSVR"
 echo '---End of ROS private config data---'
 read -r -p "ROS config data above is correct? [Y/n]:" input
 case $input in
-  [yY][eE][sS]|[yY])  
+  [yY])  
 	;;
   *) 
 	echo 'Exit for wrong ROS config data!'; 
