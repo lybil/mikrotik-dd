@@ -128,8 +128,8 @@ esac
 
 #######download and extract ROS image zip file
 #ros version
-#ROS_VER="6.49.17"
-ROS_VER=` curl -sL https://download.mikrotik.com/routeros/latest-stable-and-long-term.rss | awk '/<title>RouterOS.*\[stable\]/ {print $2}' `
+ROS_VER="7.19"
+#ROS_VER=` curl -sL https://download.mikrotik.com/routeros/latest-stable-and-long-term.rss | awk '/<title>RouterOS.*\[stable\]/ {print $2}' `
 echo "ROS image version : $ROS_VER"
 
 #download image zip file
