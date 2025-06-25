@@ -200,7 +200,7 @@ echo ":local intfName" >> /mnt/ros/rw/autorun.scr
 for (( i=0; i<${#ETHERS[@]}; i++ ))
 do 
 	echo ":set intfName [ /interface get value-name=name number=[ find where mac-address=${MAC[$i]} ] ] " >> /mnt/ros/rw/autorun.scr
-	[ -n "${ADDR[$i]}" ] && echo "/ip address add address=${ADDR[$i]} interface=\$intfName" >> /mnt/ros/rw/autorun.scr
+	[ -n "${ADDR[$i]}" ] && echo "/ip address add address=${ADDR[$i]} network=$GATEWAY interface=\$intfName" >> /mnt/ros/rw/autorun.scr
 	[ -n "${ADDR6[$i]}" -a -z "$VER_6" ] && echo "/ipv6 address add address=${ADDR6[$i]} interface=\$intfName" >> /mnt/ros/rw/autorun.scr
 done
 
