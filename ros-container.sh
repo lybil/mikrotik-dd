@@ -1,18 +1,17 @@
 #!/bin/bash
 
-###install needed command
+### install needed command
 echo '---install curl wget unzip rsync gdisk dosfstools---'
 if [ -f /etc/os-release ]; then
-	distro=`awk -F '=|"' '/^NAME=/{print $3}' /etc/os-release`
+	distro=$(awk -F '=|"' '/^NAME=/{print $3}' /etc/os-release)
 	case $distro in
-		'CentOS Linux' | 'Oracle Linux Server' | 'Amazon Linux' )
+		'CentOS Linux' | 'Oracle Linux Server' | 'Amazon Linux')
 			echo 'yum -y -q install curl wget unzip rsync gdisk dosfstools'
 			yum check-update
 			yum -y -q install curl wget unzip rsync gdisk dosfstools
 			;;
 		'Ubuntu' | 'Debian GNU/Linux')
 			echo 'apt-get -y -q install curl wget unzip rsync gdisk dosfstools'
-			#apt-get --allow-releaseinfo-change update
 			apt-get update
 			apt-get -y -q install curl wget unzip rsync gdisk dosfstools
 			;;
@@ -32,33 +31,33 @@ else
 	exit 1
 fi
 
-###check vps basic infomation
+### check vps basic information
 echo '---vps basic information---'
-#ethernet interface
-ETHERS=(`ls /sys/class/net/ | grep -v "\`ls /sys/devices/virtual/net/\`"`)
+
+# ethernet interface
+ETHERS=($(ls /sys/class/net/ | grep -v "$(ls /sys/devices/virtual/net/)"))
 echo "ethernet interface : ${ETHERS[*]}"
 
-#ip addresses
-#caution: not support that one interface has more than one address
+# ip addresses
 MAC=()
 ADDR=()
 ADDR6=()
 for (( i=0; i<${#ETHERS[@]}; i++ ))
 do 
-	MAC[$i]=`ip link show ${ETHERS[$i]} | awk '/link\/ether/ {print toupper($2)}'`
-	ADDR[$i]=`ip address show ${ETHERS[$i]} | awk '$0 ~ "inet .*global" {print$2}'`
-	ADDR6[$i]=`ip address show ${ETHERS[$i]} | awk '$0 ~ "inet6 .*global" {print$2}'`
+	MAC[$i]=$(ip link show ${ETHERS[$i]} | awk '/link\/ether/ {print toupper($2)}')
+	ADDR[$i]=$(ip address show ${ETHERS[$i]} | awk '$0 ~ "inet .*global" {print$2}')
+	ADDR6[$i]=$(ip address show ${ETHERS[$i]} | awk '$0 ~ "inet6 .*global" {print$2}')
 	echo "    ${ETHERS[$i]} : mac=${MAC[$i]}; ipv4=${ADDR[$i]}; ipv6=${ADDR6[$i]}"
 done
 
-#gateway
-GATEWAY=`ip route list | grep "^default via" | grep -v "\`ls /sys/devices/virtual/net\`" | awk '{print $3}'`
+# gateway
+GATEWAY=$(ip route list | grep "^default via" | grep -v "$(ls /sys/devices/virtual/net)" | awk '{print $3}')
 echo "gateway : $GATEWAY"
 
-#gateway ipv6
+# gateway ipv6
 GATE6=()
 GATE6DEV=()
-ROUTE6=(`ip -6 route list | awk '/^default via/ {print $3","$5}'`)
+ROUTE6=($(ip -6 route list | awk '/^default via/ {print $3","$5}'))
 for (( i=0; i<${#ROUTE6[@]}; i++ ))
 do 
 	GATE6[$i]=${ROUTE6[$i]%,*}
@@ -73,14 +72,14 @@ do
 	echo "gateway6 : ${GATE6[$i]} dev $TMPDEV interface index ${GATE6DEV[$i]}"
 done
 
-#disk
-DSTDISK=`lsblk -o PKNAME,MOUNTPOINT | awk '$2 == "/" {print $1}'`
+# disk
+DSTDISK=$(lsblk -o PKNAME,MOUNTPOINT | awk '$2 == "/" {print $1}')
 echo "disk : $DSTDISK"
 echo '---'
 
 read -r -p "VPS basic information above is correct? [Y/n]:" input
 case "$input" in
-	[yY])
+	[yY][eE][sS]|[yY])
 		;;
 	*)
 		echo 'Exit for wrong vps information!';
@@ -88,17 +87,16 @@ case "$input" in
 		;;
 esac
 
-
-###check ros config data
+### check ros config data
 echo '---ROS private config data---'
 
-#ros license account
+# ros license account
 ROSACCOUNT=""
 ROSPASSWD=""
 [ -z "$ROSACCOUNT" ] && read -r -p "Input ROS license account:" ROSACCOUNT
 [ -z "$ROSPASSWD" ] && read -r -p "Input ROS license password:" ROSPASSWD
 
-#access config
+# access config
 PASSWORD=""
 [ -z "$PASSWORD" ] && read -r -p "Input ROS admin password:" PASSWORD
 
@@ -111,14 +109,14 @@ DNSSVR="1.1.1.1,1.0.0.1"
 [ -z "$DNSSVR" ] && read -r -p "Input ROS dns server:" DNSSVR
 
 echo '---'
-echo "ROS license user: $ROSACCOUNT ; pass: $ROSPASSWD"
-echo "ROS admin password: $PASSWORD"
+echo "ROS license user: $ROSACCOUNT ; pass: ***********"
+echo "ROS admin password: ***********"
 echo "ROS ssh port: $SSHPORT ; winbox port: $WINBOXPORT"
 echo "ROS dns server: $DNSSVR"
 echo '---End of ROS private config data---'
 read -r -p "ROS config data above is correct? [Y/n]:" input
 case $input in
-  [yY])  
+  [yY][eE][sS]|[yY])  
 	;;
   *) 
 	echo 'Exit for wrong ROS config data!'; 
@@ -126,43 +124,41 @@ case $input in
 	;;
 esac
 
-#######download and extract ROS image zip file
-#ros version
+####### download and extract ROS image zip file
+# ros version
 ROS_VER="7.19"
-#ROS_VER=` curl -sL https://download.mikrotik.com/routeros/latest-stable-and-long-term.rss | awk '/<title>RouterOS.*\[stable\]/ {print $2}' `
 echo "ROS image version : $ROS_VER"
 
-#download image zip file
+# download image zip file
 wget https://download.mikrotik.com/routeros/$ROS_VER/chr-$ROS_VER.img.zip -O chr.img.zip
 [ $? -ne 0 ] && echo 'ROS image zip file download failed!' && exit 1
 
-#extract image zip file to ramfs
+# extract image zip file to ramfs
 mkdir -p /mnt/img
-mount -t ramfs rampart /mnt/img
+mount -t ramfs ramfs /mnt/img
 unzip -p chr.img.zip > /mnt/img/chr.img
 [ $? -ne 0 ] && echo 'Error on extract image file!' && exit 1
 
-########modify image
-###losetup loop device
-LOOPDEV=`losetup --show -f -P /mnt/img/chr.img 2>/dev/null`
+######## modify image
+### losetup loop device
+LOOPDEV=$(losetup --show -f -P /mnt/img/chr.img 2>/dev/null)
 [ $? -ne 0 -o -z "$LOOPDEV" ] && echo 'losetup failed!' && exit 1
 mkdir -p /mnt/ros
 
-###uefi boot partition,convert to Hybrid MBR,format to FAT16 
+### UEFI boot partition
 if [ -d /sys/firmware/efi ]; then
-	BOOTPART=`ls $LOOPDEV?* 2>/dev/null | awk 'NR == 1 {print $1}'`
+	BOOTPART=$(ls ${LOOPDEV}?* 2>/dev/null | head -n1)
 	[ -z "$BOOTPART" ] && echo 'boot partition is null!' && exit 1
 	
 	mount $BOOTPART /mnt/ros
 	[ $? -ne 0 ] && echo "Boot partition mount failed!" && exit 1
 
-	[ -d ./efidata ] && rm -rf ./efidata/*
+	rm -rf ./efidata/*
 	mkdir -p ./efidata
 	rsync -a /mnt/ros/ ./efidata/
 	umount /mnt/ros
 	
-	#convert to uefi FAT16
-	#keep efi partition and make hybrid MBR in which the first partition is linux file system
+	# convert to hybrid MBR and FAT16 format
 	echo -e "2\nr\nh\n1 2\nn\n83\ny\n\nn\nn\nw\ny\n" | gdisk $LOOPDEV
 	mkfs.fat -F 16 $BOOTPART
 	
@@ -171,18 +167,17 @@ if [ -d /sys/firmware/efi ]; then
 	umount /mnt/ros
 fi
 
-###write to config file
-#mount img
-LOOPPART=`ls $LOOPDEV?* 2>/dev/null | awk 'END {print $1}'`
+### write to config file
+LOOPPART=$(ls ${LOOPDEV}?* 2>/dev/null | tail -n1)
 [ -z "$LOOPPART" ] && echo 'Partition is null!' && exit 1
 mount $LOOPPART /mnt/ros
 [ $? -ne 0 ] && echo "Mount failed!" && exit 1
 
 echo 'Writing to autorun.scr...'
 
-VER_6=`echo $ROS_VER | grep "^6"`
+VER_6=$(echo $ROS_VER | grep "^6")
 
-#writing to auto config script
+# writing auto config script
 cat > /mnt/ros/rw/autorun.scr <<EOF
 /ip service disable telnet,ftp,www,api,api-ssl
 /tool mac-server set allowed-interface-list=none
@@ -190,22 +185,17 @@ cat > /mnt/ros/rw/autorun.scr <<EOF
 /ip dhcp-client disable [find]
 EOF
 
-#password
+# password
 [ -n "$PASSWORD" ] && echo "/user set 0 name=admin password=$PASSWORD" >> /mnt/ros/rw/autorun.scr
 
-#access port
+# access port
 [ -n "$SSHPORT" ] && echo "/ip service set ssh port=$SSHPORT" >> /mnt/ros/rw/autorun.scr
 [ -n "$WINBOXPORT" ] && echo "/ip service set winbox port=$WINBOXPORT" >> /mnt/ros/rw/autorun.scr
 
-#config dns
+# config dns
 [ -n "$DNSSVR" ] && echo "/ip dns set servers=$DNSSVR" >> /mnt/ros/rw/autorun.scr
 
-#for China Mainland
-#echo "/ip dns set servers=223.5.5.5,119.29.29.29" >> /mnt/ros/rw/autorun.scr
-#echo "/ip dns static add cname=upgrade.mikrotik.app name=upgrade.mikrotik.com type=CNAME" >> /mnt/ros/rw/autorun.scr
-#echo "/ip dns static add cname=licence.mikrotik.app name=licence.mikrotik.com type=CNAME" >> /mnt/ros/rw/autorun.scr
-
-#ip address
+# ip address
 echo ":local intfName" >> /mnt/ros/rw/autorun.scr
 for (( i=0; i<${#ETHERS[@]}; i++ ))
 do 
@@ -214,10 +204,10 @@ do
 	[ -n "${ADDR6[$i]}" -a -z "$VER_6" ] && echo "/ipv6 address add address=${ADDR6[$i]} interface=\$intfName" >> /mnt/ros/rw/autorun.scr
 done
 
-#gateway
+# gateway
 [ -n "$GATEWAY" ] && echo "/ip route add gateway=$GATEWAY" >> /mnt/ros/rw/autorun.scr
 
-#gateway ipv6
+# gateway ipv6
 if [ -z "$VER_6" ]; then
 	for (( i=0; i<${#GATE6[@]}; i++ ))
 	do 
@@ -227,10 +217,10 @@ if [ -z "$VER_6" ]; then
 	done
 fi
 
-#license
+# license
 if [ -n "$ROSACCOUNT" -a -n "$ROSPASSWD" ]; then
 cat >> /mnt/ros/rw/autorun.scr <<EOF
-#renew license
+# renew license
 /delay 3s
 /system license renew account=$ROSACCOUNT password=$ROSPASSWD level=p-unlimited
 EOF
@@ -238,7 +228,7 @@ fi
 
 if [ -n "$VER_6" ]; then
 cat >> /mnt/ros/rw/autorun.scr <<EOF
-#upgrade
+# upgrade
 /system package update set channel=upgrade
 /system package update check-for-updates once
 :delay 3s;
@@ -246,7 +236,7 @@ cat >> /mnt/ros/rw/autorun.scr <<EOF
 EOF
 fi
 
-###add extra packages and enable container mode
+### add extra packages and enable container mode
 if [ -z "$VER_6" ]; then
 	wget https://download.mikrotik.com/routeros/$ROS_VER/all_packages-x86-$ROS_VER.zip -O all_packages-x86.zip
 	unzip -j all_packages-x86.zip container-$ROS_VER.npk rose-storage-$ROS_VER.npk -d ./
@@ -257,6 +247,7 @@ if [ -z "$VER_6" ]; then
 
 	mkdir /mnt/ros/var/pdb/container
 	mv ./container-$ROS_VER.npk /mnt/ros/var/pdb/container/image
+
 	wget -P /mnt/ros/rw https://github.com/xyzros/dd/raw/main/rosmode.msg
 	[ $? -ne 0 ] && echo 'rosmode.msg download failed!' && exit 1
 fi
@@ -264,11 +255,11 @@ fi
 sync
 umount /mnt/ros
 
-###release loop device
+### release loop device
 losetup -d $LOOPDEV
 sync
 
-########dd
+######## dd
 echo 'dd starting'
 echo u > /proc/sysrq-trigger
 dd if=/mnt/img/chr.img of=/dev/$DSTDISK bs=1M oflag=sync
