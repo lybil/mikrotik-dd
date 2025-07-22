@@ -1,6 +1,6 @@
 # ros 7.8 container 
 ```
-curl <(wget -qO- --no-check-certificate https://raw.githubusercontent.com/lybil/mikrotik-dd/refs/heads/main/ros-container.sh)
+bash <(wget -qO- --no-check-certificate https://raw.githubusercontent.com/lybil/mikrotik-dd/refs/heads/main/ros-container.sh)
 ```
 # ros7.4系统dd
 
